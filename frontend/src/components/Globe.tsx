@@ -11,7 +11,8 @@ interface GlobeViewProps {
 }
 
 export default function GlobeView({ onCountrySelect, selectedCountry }: GlobeViewProps) {
-  const globeRef = useRef<{ controls: () => { autoRotate: boolean; autoRotateSpeed: number }; pointOfView: (pov: object, ms?: number) => void } | undefined>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globeRef = useRef<any>(null);
   const [countries, setCountries] = useState<CountriesGeoJSON | null>(null);
 
   useEffect(() => {
@@ -22,15 +23,17 @@ export default function GlobeView({ onCountrySelect, selectedCountry }: GlobeVie
   }, []);
 
   useEffect(() => {
-    if (!globeRef.current || !countries) return;
-    globeRef.current.controls().autoRotate = true;
-    globeRef.current.controls().autoRotateSpeed = 0.4;
-    globeRef.current.pointOfView({ altitude: 2.2 }, 1200);
+    const globe = globeRef.current;
+    if (!globe || !countries) return;
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.4;
+    globe.pointOfView({ altitude: 2.2 }, 1200);
   }, [countries]);
 
   const handlePolygonClick = useCallback(
-    (polygon: CountryFeature) => {
-      const props = polygon?.properties;
+    (polygon: object) => {
+      const f = polygon as CountryFeature;
+      const props = f?.properties;
       if (!props?.ISO_A2 || props.ISO_A2 === '-99') return;
       const name = props.ADMIN ?? props.NAME ?? 'Unknown';
       onCountrySelect({
@@ -43,19 +46,30 @@ export default function GlobeView({ onCountrySelect, selectedCountry }: GlobeVie
   );
 
   const getPolygonColor = useCallback(
-    (d: CountryFeature) => {
+    (d: object) => {
+      const f = d as CountryFeature;
       if (!selectedCountry) return 'rgba(59, 130, 246, 0.35)';
-      const iso = d?.properties?.ISO_A2;
+      const iso = f?.properties?.ISO_A2;
       if (iso === selectedCountry.iso2) return 'rgba(59, 130, 246, 0.85)';
       return 'rgba(30, 58, 95, 0.6)';
     },
     [selectedCountry]
   );
 
-  const getPolygonAltitude = useCallback((d: CountryFeature) => {
-    if (selectedCountry && d?.properties?.ISO_A2 === selectedCountry.iso2) return 0.08;
-    return 0.02;
-  }, [selectedCountry]);
+  const getPolygonAltitude = useCallback(
+    (d: object) => {
+      const f = d as CountryFeature;
+      if (selectedCountry && f?.properties?.ISO_A2 === selectedCountry.iso2) return 0.08;
+      return 0.02;
+    },
+    [selectedCountry]
+  );
+
+  const getPolygonLabel = useCallback((obj: object) => {
+    const f = obj as CountryFeature;
+    const p = f?.properties;
+    return p?.ADMIN ? `${p.ADMIN} (${p.ISO_A2})` : '';
+  }, []);
 
   if (!countries) {
     return (
@@ -81,11 +95,9 @@ export default function GlobeView({ onCountrySelect, selectedCountry }: GlobeVie
         polygonSideColor={() => 'rgba(0, 0, 0, 0.15)'}
         polygonStrokeColor={() => 'rgba(255,255,255,0.1)'}
         polygonAltitude={getPolygonAltitude}
-        polygonLabel={({ properties: p }: CountryFeature) =>
-          p?.ADMIN ? `${p.ADMIN} (${p.ISO_A2})` : ''
-        }
+        polygonLabel={getPolygonLabel}
         onPolygonClick={handlePolygonClick}
-        polygonTransitionDuration={300}
+        polygonsTransitionDuration={300}
       />
     </div>
   );
