@@ -1,9 +1,9 @@
 import { Request, Response, Router, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import User from '../models/User.js';
-import { hashPassword, verifyPassword } from '../lib/password.js';
-import { signToken, requireAuth } from '../middleware/auth.js';
-import type { AuthRequest } from '../middleware/auth.js';
+import User from '../models/User';
+import { hashPassword, verifyPassword } from '../lib/password';
+import { signToken, requireAuth } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -54,6 +54,8 @@ router.post('/register', ensureDb, async (req: Request, res: Response) => {
         id: user._id,
         email: user.email,
         displayName: user.displayName,
+        visitedCountries: user.visitedCountries ?? [],
+        wishlistCountries: user.wishlistCountries ?? [],
       },
       token,
     });
@@ -100,6 +102,8 @@ router.post('/login', ensureDb, async (req: Request, res: Response) => {
         id: user._id,
         email: user.email,
         displayName: user.displayName,
+        visitedCountries: user.visitedCountries ?? [],
+        wishlistCountries: user.wishlistCountries ?? [],
       },
       token,
     });
@@ -120,6 +124,8 @@ router.get('/me', ensureDb, requireAuth, (req: Request, res: Response) => {
       id: u._id,
       email: u.email,
       displayName: u.displayName,
+      visitedCountries: u.visitedCountries ?? [],
+      wishlistCountries: u.wishlistCountries ?? [],
     },
   });
 });

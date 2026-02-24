@@ -5,6 +5,8 @@ export interface IUser {
   salt: string;
   hash: string;
   displayName?: string;
+  visitedCountries: string[];   // ISO-2 codes like ["US","FR","JP"]
+  wishlistCountries: string[];  // ISO-2 codes for future travel goals
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -15,6 +17,8 @@ const userSchema = new Schema<IUserDoc>(
     salt: { type: String, required: true },
     hash: { type: String, required: true },
     displayName: { type: String, trim: true },
+    visitedCountries: { type: [String], default: [] },
+    wishlistCountries: { type: [String], default: [] },
   },
   { timestamps: true }
 );

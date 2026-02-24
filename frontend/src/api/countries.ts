@@ -7,7 +7,7 @@ export interface CountryFromAPI {
   subregion?: string;
 }
 
-const API_BASE = '/api';
+import { API_BASE } from './config';
 
 export async function fetchCountries(): Promise<CountryFromAPI[]> {
   const res = await fetch(`${API_BASE}/countries`);

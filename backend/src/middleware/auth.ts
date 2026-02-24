@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User, { IUserDoc } from '../models/User.js';
+import User, { IUserDoc } from '../models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
 
@@ -68,9 +68,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
 }
 
 export function signToken(userId: string, email: string): string {
-  return jwt.sign(
-    { userId, email } as JwtPayload,
-    JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN ?? '7d' }
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as any;
+  return jwt.sign({ userId, email } as JwtPayload, JWT_SECRET, { expiresIn });
 }
