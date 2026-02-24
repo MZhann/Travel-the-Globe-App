@@ -15,20 +15,27 @@ const app = express();
 const PORT = process.env.PORT ?? 5000;
 
 // CORS — supports comma-separated origins in FRONTEND_URL
+// Strip trailing slashes so "https://example.app/" matches "https://example.app"
 const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim())
+  .map((o) => o.trim().replace(/\/+$/, ''))
   .filter(Boolean);
+
+console.log('Allowed CORS origins:', allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/+$/, '');
+      if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+      console.warn(`CORS blocked origin: ${origin}`);
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
