@@ -324,3 +324,4 @@ function NewsCard({ article }: { article: NewsArticle }) {
   );
 }
 
+

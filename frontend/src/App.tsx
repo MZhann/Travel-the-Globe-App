@@ -191,6 +191,7 @@ export default function App() {
           onClose={() => setProfileOpen(false)}
           onCountryClick={handleProfileCountryClick}
           onLogout={handleLogout}
+          getToken={getToken}
         />
       )}
 

@@ -56,6 +56,7 @@ router.post('/register', ensureDb, async (req: Request, res: Response) => {
         displayName: user.displayName,
         visitedCountries: user.visitedCountries ?? [],
         wishlistCountries: user.wishlistCountries ?? [],
+        albumsPublic: user.albumsPublic ?? false,
       },
       token,
     });
@@ -104,6 +105,7 @@ router.post('/login', ensureDb, async (req: Request, res: Response) => {
         displayName: user.displayName,
         visitedCountries: user.visitedCountries ?? [],
         wishlistCountries: user.wishlistCountries ?? [],
+        albumsPublic: user.albumsPublic ?? false,
       },
       token,
     });
@@ -126,6 +128,7 @@ router.get('/me', ensureDb, requireAuth, (req: Request, res: Response) => {
       displayName: u.displayName,
       visitedCountries: u.visitedCountries ?? [],
       wishlistCountries: u.wishlistCountries ?? [],
+      albumsPublic: u.albumsPublic ?? false,
     },
   });
 });

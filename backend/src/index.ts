@@ -8,6 +8,7 @@ import visitedRouter from './routes/visited';
 import wishlistRouter from './routes/wishlist';
 import countryInfoRouter from './routes/countryInfo';
 import countryNewsRouter from './routes/countryNews';
+import albumsRouter from './routes/albums';
 
 dotenv.config();
 
@@ -38,7 +39,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json());
+// Increase body size limit for base64 image uploads (10MB)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.use('/api/auth', authRouter);
 app.use('/api/countries', countriesRouter);
@@ -46,6 +49,7 @@ app.use('/api/visited', visitedRouter);
 app.use('/api/wishlist', wishlistRouter);
 app.use('/api/country-info', countryInfoRouter);
 app.use('/api/country-news', countryNewsRouter);
+app.use('/api/albums', albumsRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Travel the Globe API' });

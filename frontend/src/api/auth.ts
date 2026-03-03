@@ -9,6 +9,7 @@ export interface AuthUser {
   displayName?: string;
   visitedCountries: string[];
   wishlistCountries: string[];
+  albumsPublic: boolean;
 }
 
 export interface AuthResponse {

@@ -11,3 +11,4 @@ const backendUrl = (import.meta.env.VITE_API_URL as string | undefined)?.replace
 
 export const API_BASE = backendUrl ? `${backendUrl}/api` : '/api';
 
+

@@ -7,6 +7,7 @@ export interface IUser {
   displayName?: string;
   visitedCountries: string[];   // ISO-2 codes like ["US","FR","JP"]
   wishlistCountries: string[];  // ISO-2 codes for future travel goals
+  albumsPublic: boolean;        // Whether albums are visible to other users
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -19,6 +20,7 @@ const userSchema = new Schema<IUserDoc>(
     displayName: { type: String, trim: true },
     visitedCountries: { type: [String], default: [] },
     wishlistCountries: { type: [String], default: [] },
+    albumsPublic: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
