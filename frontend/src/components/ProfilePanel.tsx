@@ -174,7 +174,7 @@ export default function ProfilePanel({
           />
         )}
 
-        {/* Header */}
+      {/* Header */}
         <div className="relative flex items-start justify-between border-b border-white/10 p-5">
           <div className="flex items-center gap-4">
             {/* Profile avatar in fullscreen */}
@@ -189,21 +189,21 @@ export default function ProfilePanel({
                 {(user.displayName || user.email)[0].toUpperCase()}
               </div>
             )}
-            <div>
+        <div>
               <h2 
                 className={`font-semibold text-white ${isFullscreen ? 'text-2xl' : 'text-lg'}`}
                 style={isFullscreen ? { fontFamily: "'Playfair Display', Georgia, serif" } : {}}
               >
-                {user.displayName || 'Traveler'}
-              </h2>
-              <p className="text-sm text-slate-400">{user.email}</p>
+            {user.displayName || 'Traveler'}
+          </h2>
+          <p className="text-sm text-slate-400">{user.email}</p>
               {isFullscreen && (
                 <p className="mt-1 text-xs text-amber-600">
                   📍 {visitedCount} countries visited • {memories.length} memories captured
                 </p>
               )}
             </div>
-          </div>
+        </div>
           <div className="flex items-center gap-2">
             {/* Fullscreen toggle button */}
             <button
@@ -224,18 +224,18 @@ export default function ProfilePanel({
               )}
             </button>
             {/* Close button */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-              aria-label="Close"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+          aria-label="Close"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
           </div>
-        </div>
+      </div>
 
         {/* Stats - more prominent in fullscreen */}
         <div className={`border-b border-white/10 ${isFullscreen ? 'px-8 py-6' : 'px-5 py-4'}`}>
@@ -282,46 +282,46 @@ export default function ProfilePanel({
                     </svg>
                   </div>
                 </div>
-              </div>
+          </div>
             )}
           </div>
           {!isFullscreen && (
             <>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-green-500 transition-all duration-500"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-              <p className="mt-1 text-right text-xs text-slate-500">
-                {percentage}% of the world explored
-              </p>
+        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-green-500 transition-all duration-500"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <p className="mt-1 text-right text-xs text-slate-500">
+          {percentage}% of the world explored
+        </p>
             </>
           )}
-        </div>
+      </div>
 
-        {/* Tab switcher */}
+      {/* Tab switcher */}
         <div className={`flex border-b border-white/10 ${isFullscreen ? 'px-4' : ''}`}>
-          <button
-            type="button"
-            onClick={() => setTab('visited')}
+        <button
+          type="button"
+          onClick={() => setTab('visited')}
             className={`flex-1 py-2.5 text-center font-medium transition ${isFullscreen ? 'text-base' : 'text-sm'} ${
-              tab === 'visited'
-                ? 'border-b-2 border-green-400 text-green-400'
-                : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
+            tab === 'visited'
+              ? 'border-b-2 border-green-400 text-green-400'
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
             ✓ Visited
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('wishlist')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('wishlist')}
             className={`flex-1 py-2.5 text-center font-medium transition ${isFullscreen ? 'text-base' : 'text-sm'} ${
-              tab === 'wishlist'
-                ? 'border-b-2 border-purple-400 text-purple-400'
-                : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
+            tab === 'wishlist'
+              ? 'border-b-2 border-purple-400 text-purple-400'
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
             📌 Wishlist
           </button>
           <button
@@ -371,8 +371,8 @@ export default function ProfilePanel({
                         : `top-0.5 h-5 w-5 ${albumsPublic ? 'left-[22px]' : 'left-0.5'}`
                     }`}
                   />
-                </button>
-              </div>
+        </button>
+      </div>
 
               {/* Add photo button for visited countries */}
               {visitedCountries.length > 0 && (
@@ -444,29 +444,29 @@ export default function ProfilePanel({
             </div>
           ) : (
             <div className={isFullscreen ? 'px-8 py-6' : 'px-5 py-4'}>
-              {activeList.length === 0 ? (
+        {activeList.length === 0 ? (
                 <p className={`whitespace-pre-line text-center text-slate-500 ${isFullscreen ? 'py-12 text-lg' : 'text-sm'}`}>
-                  {emptyMessage}
-                </p>
-              ) : (
+            {emptyMessage}
+          </p>
+        ) : (
                 <ul className={`space-y-1 ${isFullscreen ? 'grid grid-cols-2 gap-3 space-y-0 lg:grid-cols-3' : ''}`}>
-                  {activeList
-                    .slice()
-                    .sort((a, b) => (countryNames[a] ?? a).localeCompare(countryNames[b] ?? b))
-                    .map((iso2) => (
-                      <li key={iso2}>
+            {activeList
+              .slice()
+              .sort((a, b) => (countryNames[a] ?? a).localeCompare(countryNames[b] ?? b))
+              .map((iso2) => (
+                <li key={iso2}>
                         <div className={`flex items-center gap-2 ${isFullscreen ? 'rounded-lg bg-white/5 p-1' : ''}`}>
-                          <button
-                            type="button"
-                            onClick={() => onCountryClick(iso2)}
+                  <button
+                    type="button"
+                    onClick={() => onCountryClick(iso2)}
                             className={`flex flex-1 items-center gap-2 rounded-lg text-left text-slate-300 transition hover:bg-white/5 hover:text-white ${
                               isFullscreen ? 'px-4 py-3 text-base' : 'px-3 py-2 text-sm'
                             }`}
-                          >
-                            <span className={tab === 'visited' ? 'text-green-400' : 'text-purple-400'}>
-                              {tab === 'visited' ? '✓' : '📌'}
-                            </span>
-                            <span className="flex-1">{countryNames[iso2] ?? iso2}</span>
+                  >
+                    <span className={tab === 'visited' ? 'text-green-400' : 'text-purple-400'}>
+                      {tab === 'visited' ? '✓' : '📌'}
+                    </span>
+                    <span className="flex-1">{countryNames[iso2] ?? iso2}</span>
                             <span className={`text-slate-500 ${isFullscreen ? 'text-sm' : 'text-xs'}`}>{iso2}</span>
                           </button>
                           {tab === 'visited' && (
@@ -482,18 +482,18 @@ export default function ProfilePanel({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                            </button>
+                  </button>
                           )}
                         </div>
-                      </li>
-                    ))}
-                </ul>
+                </li>
+              ))}
+          </ul>
               )}
             </div>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* Footer */}
+      {/* Footer */}
         <div className={`border-t border-white/10 ${isFullscreen ? 'p-6' : 'p-4'}`}>
           <div className={`flex gap-3 ${isFullscreen ? '' : 'flex-col'}`}>
             {isFullscreen && (
@@ -505,17 +505,17 @@ export default function ProfilePanel({
                 ← Back to compact view
               </button>
             )}
-            <button
-              type="button"
-              onClick={onLogout}
+        <button
+          type="button"
+          onClick={onLogout}
               className={`rounded-lg border border-white/10 bg-white/5 py-2 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white ${
                 isFullscreen ? 'px-6' : 'w-full'
               }`}
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
       </div>
 
       {/* Add Photo Modal */}

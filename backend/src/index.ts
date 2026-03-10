@@ -9,6 +9,7 @@ import wishlistRouter from './routes/wishlist';
 import countryInfoRouter from './routes/countryInfo';
 import countryNewsRouter from './routes/countryNews';
 import albumsRouter from './routes/albums';
+import usersRouter from './routes/users';
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use('/api/wishlist', wishlistRouter);
 app.use('/api/country-info', countryInfoRouter);
 app.use('/api/country-news', countryNewsRouter);
 app.use('/api/albums', albumsRouter);
+app.use('/api/users', usersRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Travel the Globe API' });

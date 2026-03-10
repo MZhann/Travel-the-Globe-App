@@ -4,6 +4,8 @@ import CountryPanel from './components/CountryPanel';
 import CountryDrawer from './components/CountryDrawer';
 import AuthModal from './components/AuthModal';
 import ProfilePanel from './components/ProfilePanel';
+import ExploreUsers from './components/ExploreUsers';
+import UserProfileView from './components/UserProfileView';
 import { useAuth } from './context/AuthContext';
 import { markVisited, unmarkVisited, getVisitedCountries } from './api/visited';
 import { addToWishlist, removeFromWishlist, getWishlistCountries } from './api/wishlist';
@@ -21,6 +23,8 @@ export default function App() {
   const [countryNames, setCountryNames] = useState<Record<string, string>>({});
   const [drawerCountry, setDrawerCountry] = useState<SelectedCountry | null>(null);
   const [autoRotate, setAutoRotate] = useState(true);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const { user, logout, loading, getToken } = useAuth();
 
   // Build iso2 → name map from GeoJSON (loaded once)
@@ -132,7 +136,20 @@ export default function App() {
     <div className="relative h-screen w-screen overflow-hidden bg-globe-bg">
       {/* Header */}
       <header className="absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-6 py-4">
-        <h1 className="text-xl font-semibold text-white">Travel the Globe</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold text-white">Travel the Globe</h1>
+          <button
+            type="button"
+            onClick={() => setExploreOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-amber-600/20 px-3 py-1.5 text-sm text-amber-400 transition hover:bg-amber-600/30"
+            title="Explore other travelers"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Explore
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           {!loading && (
             user ? (
@@ -223,6 +240,27 @@ export default function App() {
           country={drawerCountry}
           open={Boolean(drawerCountry)}
           onClose={handleCloseDrawer}
+        />
+      )}
+
+      {/* Explore Users */}
+      {exploreOpen && (
+        <ExploreUsers
+          onUserSelect={(userId) => {
+            setViewingUserId(userId);
+            setExploreOpen(false);
+          }}
+          onClose={() => setExploreOpen(false)}
+        />
+      )}
+
+      {/* User Profile View */}
+      {viewingUserId && (
+        <UserProfileView
+          userId={viewingUserId}
+          countryNames={countryNames}
+          onClose={() => setViewingUserId(null)}
+          getToken={getToken}
         />
       )}
 
