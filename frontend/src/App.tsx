@@ -6,6 +6,7 @@ import AuthModal from './components/AuthModal';
 import ProfilePanel from './components/ProfilePanel';
 import ExploreUsers from './components/ExploreUsers';
 import UserProfileView from './components/UserProfileView';
+import GlobalChat from './components/GlobalChat';
 import { useAuth } from './context/AuthContext';
 import { markVisited, unmarkVisited, getVisitedCountries } from './api/visited';
 import { addToWishlist, removeFromWishlist, getWishlistCountries } from './api/wishlist';
@@ -25,7 +26,33 @@ export default function App() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState(false);
   const { user, logout, loading, getToken } = useAuth();
+
+  // Detect shared globe link (?globe=userId) on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const globeUserId = params.get('globe');
+    if (globeUserId) {
+      setViewingUserId(globeUserId);
+    }
+  }, []);
+
+  const handleShareGlobe = useCallback(() => {
+    if (!user) return;
+    const url = `${window.location.origin}${window.location.pathname}?globe=${user.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2500);
+    }).catch(() => {});
+  }, [user]);
+
+  const handleCloseUserProfile = useCallback(() => {
+    setViewingUserId(null);
+    if (window.location.search.includes('globe=')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Build iso2 → name map from GeoJSON (loaded once)
   const geoLoaded = useRef(false);
@@ -176,6 +203,17 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={handleShareGlobe}
+                  className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/30"
+                  title="Share your globe"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  Share
+                </button>
+                <button
+                  type="button"
                   onClick={handleLogout}
                   className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white transition hover:bg-white/20"
                 >
@@ -209,6 +247,7 @@ export default function App() {
           onCountryClick={handleProfileCountryClick}
           onLogout={handleLogout}
           getToken={getToken}
+          onShareGlobe={handleShareGlobe}
         />
       )}
 
@@ -259,7 +298,7 @@ export default function App() {
         <UserProfileView
           userId={viewingUserId}
           countryNames={countryNames}
-          onClose={() => setViewingUserId(null)}
+          onClose={handleCloseUserProfile}
           getToken={getToken}
         />
       )}
@@ -301,6 +340,21 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Global Chat */}
+      {user && <GlobalChat getToken={getToken} user={user} />}
+
+      {/* Share toast notification */}
+      {shareToast && (
+        <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 animate-bounce">
+          <div className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-lg">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Globe link copied to clipboard!
+          </div>
+        </div>
+      )}
     </div>
   );
 }

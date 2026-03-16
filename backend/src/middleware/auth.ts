@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User, { IUserDoc } from '../models/User';
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
+export const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
 
 export interface JwtPayload {
   userId: string;
