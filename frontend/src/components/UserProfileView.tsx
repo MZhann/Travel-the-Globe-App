@@ -34,8 +34,8 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
         const token = getToken?.() || undefined;
         const profileData = await getUserProfile(userId, token);
         setProfile(profileData);
-        setIsFollowing(profileData.isFollowing);
-        setFollowersCount(profileData.stats.followersCount);
+        setIsFollowing(profileData.isFollowing ?? false);
+        setFollowersCount(profileData.stats?.followersCount ?? 0);
 
         if (profileData.canViewAlbums) {
           try {
@@ -97,10 +97,11 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
     );
   }
 
-  const { user, stats, badges } = profile;
+  const { user, stats } = profile;
+  const badges = profile.badges ?? [];
   const canFollow = currentUser && currentUser.id !== userId;
-  const continentCounts = stats.continentCounts ?? {};
-  const visitedContinents = stats.visitedContinents ?? [];
+  const continentCounts = stats?.continentCounts ?? {};
+  const visitedContinents = stats?.visitedContinents ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm">
@@ -118,9 +119,9 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
               </h1>
               <p className="text-sm text-slate-400">{user.email}</p>
               <div className="mt-1 flex items-center gap-4 text-xs">
-                <span className="text-green-400">{stats.visitedCount} visited</span>
+                <span className="text-green-400">{stats?.visitedCount ?? 0} visited</span>
                 <span className="text-blue-400">{followersCount} followers</span>
-                <span className="text-indigo-400">{stats.followingCount} following</span>
+                <span className="text-indigo-400">{stats?.followingCount ?? 0} following</span>
                 <span className="text-amber-400">{badges.length} badges</span>
                 <span className="text-slate-500">Joined {new Date(user.joinedAt).toLocaleDateString()}</span>
               </div>
@@ -170,7 +171,7 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
                 <button key={t} type="button" onClick={() => setActiveTab(t)}
                   className={`px-6 py-3 text-sm font-medium transition ${activeTab === t ? 'border-b-2 border-amber-400 text-amber-400' : 'text-slate-400 hover:text-slate-300'}`}>
                   {icons[t]} {labels[t]} {t === 'badges' && `(${badges.length})`}
-                  {t === 'albums' && stats.photoCount > 0 && ` (${stats.photoCount})`}
+                  {t === 'albums' && (stats?.photoCount ?? 0) > 0 && ` (${stats?.photoCount})`}
                 </button>
               );
             })}
@@ -185,8 +186,8 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
             <GlobeView selectedCountry={null} onCountrySelect={() => {}} visitedCountries={user.visitedCountries} wishlistCountries={user.wishlistCountries} autoRotate={true} />
             <div className="absolute bottom-4 left-4 rounded-lg bg-globe-ocean/90 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-4 text-sm">
-                <div><span className="text-2xl font-bold text-green-400">{stats.visitedCount}</span><span className="ml-1 text-slate-400">visited</span></div>
-                <div><span className="text-2xl font-bold text-purple-400">{stats.wishlistCount}</span><span className="ml-1 text-slate-400">wishlist</span></div>
+                <div><span className="text-2xl font-bold text-green-400">{stats?.visitedCount ?? 0}</span><span className="ml-1 text-slate-400">visited</span></div>
+                <div><span className="text-2xl font-bold text-purple-400">{stats?.wishlistCount ?? 0}</span><span className="ml-1 text-slate-400">wishlist</span></div>
               </div>
             </div>
           </div>
@@ -197,11 +198,11 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
             <div className="mx-auto max-w-5xl space-y-8">
               {/* Top stats */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-                <StatsCard value={stats.visitedCount} label="Visited" color="text-green-400" />
-                <StatsCard value={stats.wishlistCount} label="Wishlist" color="text-purple-400" />
-                <StatsCard value={stats.photoCount} label="Memories" color="text-amber-400" />
+                <StatsCard value={stats?.visitedCount ?? 0} label="Visited" color="text-green-400" />
+                <StatsCard value={stats?.wishlistCount ?? 0} label="Wishlist" color="text-purple-400" />
+                <StatsCard value={stats?.photoCount ?? 0} label="Memories" color="text-amber-400" />
                 <StatsCard value={followersCount} label="Followers" color="text-blue-400" />
-                <StatsCard value={stats.followingCount} label="Following" color="text-indigo-400" />
+                <StatsCard value={stats?.followingCount ?? 0} label="Following" color="text-indigo-400" />
               </div>
 
               {/* World progress + Continents */}
@@ -209,10 +210,10 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
                 <div className="rounded-xl border border-white/10 bg-white/5 p-6">
                   <h3 className="mb-4 text-lg font-semibold text-white">World Progress</h3>
                   <div className="flex items-center gap-6">
-                    <ProfileDonut percentage={stats.percentage} size={120} />
+                    <ProfileDonut percentage={stats?.percentage ?? 0} size={120} />
                     <div className="space-y-2">
-                      <p className="text-3xl font-bold text-white">{stats.percentage}%</p>
-                      <p className="text-sm text-slate-400">{stats.visitedCount} of {stats.totalCountries} countries</p>
+                      <p className="text-3xl font-bold text-white">{stats?.percentage ?? 0}%</p>
+                      <p className="text-sm text-slate-400">{stats?.visitedCount ?? 0} of {stats?.totalCountries ?? 195} countries</p>
                       <p className="text-sm text-slate-400">{visitedContinents.length} of 6 continents</p>
                       {visitedContinents.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
@@ -314,7 +315,7 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
 
         {activeTab === 'albums' && profile.canViewAlbums && (
           <div className="h-full overflow-y-auto bg-globe-bg p-8">
-            {stats.photoCount === 0 ? (
+            {(stats?.photoCount ?? 0) === 0 ? (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-900/30 text-3xl">📷</div>

@@ -68,7 +68,10 @@ export default function ProfilePanel({
         setProfileData(data);
         setBadges(data.badges ?? []);
       })
-      .catch(console.error)
+      .catch(() => {
+        setProfileData(null);
+        setBadges([]);
+      })
       .finally(() => setLoadingProfile(false));
   }, [user.id, getToken]);
 
@@ -87,11 +90,11 @@ export default function ProfilePanel({
   useEffect(() => {
     if (tab === 'friends') {
       getFollowers(user.id)
-        .then((res) => setFollowers(res.users))
-        .catch(console.error);
+        .then((res) => setFollowers(res.users ?? []))
+        .catch(() => setFollowers([]));
       getFollowing(user.id)
-        .then((res) => setFollowing(res.users))
-        .catch(console.error);
+        .then((res) => setFollowing(res.users ?? []))
+        .catch(() => setFollowing([]));
     }
   }, [tab, user.id]);
 

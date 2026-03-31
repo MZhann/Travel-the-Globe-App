@@ -30,7 +30,11 @@ export default function ExploreUsers({ onUserSelect, onClose }: ExploreUsersProp
       setLoading(true);
       getLeaderboard(leaderboardSort, 30)
         .then((res) => setLeaderboardUsers(res.users))
-        .catch(console.error)
+        .catch(() => {
+          getFeaturedUsers(30)
+            .then((res) => setLeaderboardUsers(res.users))
+            .catch(console.error);
+        })
         .finally(() => setLoading(false));
     }
   }, [activeTab, leaderboardSort]);
@@ -226,7 +230,7 @@ function UserCard({ user, onClick }: { user: UserSearchResult; onClick: () => vo
             <div className="text-[10px] text-slate-500">Wishlist</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-blue-400">{user.followersCount}</div>
+            <div className="text-xl font-bold text-blue-400">{user.followersCount ?? 0}</div>
             <div className="text-[10px] text-slate-500">Followers</div>
           </div>
           <div className="text-center">
@@ -291,7 +295,7 @@ function LeaderboardRow({ user, rank, sortBy, onClick }: { user: UserSearchResul
           <p className="text-[10px] text-slate-500">countries</p>
         </div>
         <div className={`text-center ${sortBy === 'followers' ? 'opacity-100' : 'opacity-60'}`}>
-          <p className="text-xl font-bold text-blue-400">{user.followersCount}</p>
+          <p className="text-xl font-bold text-blue-400">{user.followersCount ?? 0}</p>
           <p className="text-[10px] text-slate-500">followers</p>
         </div>
         <div className="w-20">

@@ -57,6 +57,8 @@ router.post('/register', ensureDb, async (req: Request, res: Response) => {
         visitedCountries: user.visitedCountries ?? [],
         wishlistCountries: user.wishlistCountries ?? [],
         albumsPublic: user.albumsPublic ?? false,
+        followersCount: user.followers?.length ?? 0,
+        followingCount: user.following?.length ?? 0,
       },
       token,
     });
@@ -106,6 +108,8 @@ router.post('/login', ensureDb, async (req: Request, res: Response) => {
         visitedCountries: user.visitedCountries ?? [],
         wishlistCountries: user.wishlistCountries ?? [],
         albumsPublic: user.albumsPublic ?? false,
+        followersCount: user.followers?.length ?? 0,
+        followingCount: user.following?.length ?? 0,
       },
       token,
     });
@@ -129,6 +133,8 @@ router.get('/me', ensureDb, requireAuth, (req: Request, res: Response) => {
       visitedCountries: u.visitedCountries ?? [],
       wishlistCountries: u.wishlistCountries ?? [],
       albumsPublic: u.albumsPublic ?? false,
+      followersCount: u.followers?.length ?? 0,
+      followingCount: u.following?.length ?? 0,
     },
   });
 });

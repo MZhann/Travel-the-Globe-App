@@ -7,8 +7,8 @@ export interface UserProfile {
   visitedCountries: string[];
   wishlistCountries: string[];
   albumsPublic: boolean;
-  followersCount: number;
-  followingCount: number;
+  followersCount?: number;
+  followingCount?: number;
   joinedAt: string;
 }
 
@@ -19,8 +19,8 @@ export interface UserSearchResult {
   visitedCount: number;
   wishlistCount: number;
   albumsPublic: boolean;
-  followersCount: number;
-  followingCount: number;
+  followersCount?: number;
+  followingCount?: number;
   joinedAt: string;
 }
 
@@ -40,12 +40,12 @@ export interface UserProfileData {
     photoCount: number;
     percentage: number;
     totalCountries: number;
-    followersCount: number;
-    followingCount: number;
-    visitedContinents: string[];
-    continentCounts: Record<string, number>;
+    followersCount?: number;
+    followingCount?: number;
+    visitedContinents?: string[];
+    continentCounts?: Record<string, number>;
   };
-  badges: Badge[];
+  badges?: Badge[];
   memories: Array<{
     id: string;
     countryCode: string;
@@ -55,7 +55,7 @@ export interface UserProfileData {
     createdAt: string;
   }>;
   isOwnProfile: boolean;
-  isFollowing: boolean;
+  isFollowing?: boolean;
   canViewAlbums: boolean;
 }
 

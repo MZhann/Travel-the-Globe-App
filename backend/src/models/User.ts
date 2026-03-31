@@ -5,9 +5,11 @@ export interface IUser {
   salt: string;
   hash: string;
   displayName?: string;
-  visitedCountries: string[];   // ISO-2 codes like ["US","FR","JP"]
-  wishlistCountries: string[];  // ISO-2 codes for future travel goals
-  albumsPublic: boolean;        // Whether albums are visible to other users
+  visitedCountries: string[];
+  wishlistCountries: string[];
+  albumsPublic: boolean;
+  followers: string[];
+  following: string[];
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -21,9 +23,14 @@ const userSchema = new Schema<IUserDoc>(
     visitedCountries: { type: [String], default: [] },
     wishlistCountries: { type: [String], default: [] },
     albumsPublic: { type: Boolean, default: false },
+    followers: { type: [String], default: [] },
+    following: { type: [String], default: [] },
   },
   { timestamps: true }
 );
+
+userSchema.index({ 'followers': 1 });
+userSchema.index({ 'following': 1 });
 
 const User: Model<IUserDoc> =
   mongoose.models.User ?? mongoose.model<IUserDoc>('User', userSchema);
