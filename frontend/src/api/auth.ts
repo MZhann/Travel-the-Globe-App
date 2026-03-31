@@ -10,6 +10,8 @@ export interface AuthUser {
   visitedCountries: string[];
   wishlistCountries: string[];
   albumsPublic: boolean;
+  followersCount: number;
+  followingCount: number;
 }
 
 export interface AuthResponse {

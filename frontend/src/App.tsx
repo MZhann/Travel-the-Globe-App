@@ -236,7 +236,7 @@ export default function App() {
       {/* Auth modal */}
       {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
 
-      {/* Profile panel (left side) */}
+      {/* Profile panel (full-screen dashboard) */}
       {profileOpen && user && (
         <ProfilePanel
           user={user}
@@ -248,6 +248,10 @@ export default function App() {
           onLogout={handleLogout}
           getToken={getToken}
           onShareGlobe={handleShareGlobe}
+          onViewUser={(userId) => {
+            setViewingUserId(userId);
+            setProfileOpen(false);
+          }}
         />
       )}
 
