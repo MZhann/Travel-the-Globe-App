@@ -14,6 +14,9 @@ import countryNewsRouter from './routes/countryNews';
 import albumsRouter from './routes/albums';
 import usersRouter from './routes/users';
 import chatRouter from './routes/chat';
+import toursRouter from './routes/tours';
+import tourPlansRouter from './routes/tourPlans';
+import aiAdvisorRouter from './routes/aiAdvisor';
 import ChatMessage from './models/ChatMessage';
 import { JWT_SECRET, type JwtPayload } from './middleware/auth';
 
@@ -59,6 +62,9 @@ app.use('/api/country-news', countryNewsRouter);
 app.use('/api/albums', albumsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/tours', toursRouter);
+app.use('/api/tour-plans', tourPlansRouter);
+app.use('/api/ai-advisor', aiAdvisorRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Travel the Globe API' });

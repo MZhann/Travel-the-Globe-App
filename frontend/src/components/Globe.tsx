@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import type { CountryFeature, CountriesGeoJSON, SelectedCountry } from '../types/globe';
+import { resolveNaturalEarthIso2 } from '../utils/naturalEarthIso2';
 
 const GEOJSON_URL =
   'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
@@ -84,14 +85,15 @@ export default function GlobeView({
     const pins: PinLabel[] = [];
     for (const feature of countries.features) {
       const p = feature.properties;
-      if (!p?.ISO_A2 || !wishlistSet.has(p.ISO_A2)) continue;
+      const iso2 = resolveNaturalEarthIso2(p);
+      if (!iso2 || !wishlistSet.has(iso2)) continue;
       const center = computeCentroid(feature.geometry);
       if (!center) continue;
       pins.push({
         lat: center[0],
         lng: center[1],
-        iso2: p.ISO_A2,
-        name: p.ADMIN ?? p.NAME ?? p.ISO_A2,
+        iso2,
+        name: p.ADMIN ?? p.NAME ?? iso2,
       });
     }
     return pins;
@@ -101,12 +103,21 @@ export default function GlobeView({
     (polygon: object) => {
       const f = polygon as CountryFeature;
       const props = f?.properties;
-      if (!props?.ISO_A2 || props.ISO_A2 === '-99') return;
+      const iso2 = resolveNaturalEarthIso2(props);
+      if (!iso2) return;
       const name = props.ADMIN ?? props.NAME ?? 'Unknown';
+      const adm = typeof props.ADM0_A3 === 'string' ? props.ADM0_A3 : '';
+      const iso3Raw = typeof props.ISO_A3 === 'string' ? props.ISO_A3 : '';
+      const iso3 =
+        iso3Raw && iso3Raw !== '-99'
+          ? iso3Raw
+          : /^[A-Z]{3}$/.test(adm)
+            ? adm
+            : iso2;
       onCountrySelect({
         name,
-        iso2: props.ISO_A2,
-        iso3: props.ISO_A3 ?? props.ISO_A2,
+        iso2,
+        iso3,
       });
     },
     [onCountrySelect]
@@ -115,7 +126,7 @@ export default function GlobeView({
   const getPolygonColor = useCallback(
     (d: object) => {
       const f = d as CountryFeature;
-      const iso = f?.properties?.ISO_A2;
+      const iso = resolveNaturalEarthIso2(f?.properties);
 
       // Visited → green
       if (iso && visitedSet.has(iso)) {
@@ -144,7 +155,7 @@ export default function GlobeView({
   const getPolygonAltitude = useCallback(
     (d: object) => {
       const f = d as CountryFeature;
-      const iso = f?.properties?.ISO_A2;
+      const iso = resolveNaturalEarthIso2(f?.properties);
       if (selectedCountry && iso === selectedCountry.iso2) return 0.08;
       if (iso && visitedSet.has(iso)) return 0.04;
       if (iso && wishlistSet.has(iso)) return 0.035;
@@ -158,10 +169,12 @@ export default function GlobeView({
       const f = obj as CountryFeature;
       const p = f?.properties;
       if (!p?.ADMIN) return '';
+      const iso2 = resolveNaturalEarthIso2(p);
+      if (!iso2) return '';
       let badge = '';
-      if (p.ISO_A2 && visitedSet.has(p.ISO_A2)) badge = ' ✓ Visited';
-      else if (p.ISO_A2 && wishlistSet.has(p.ISO_A2)) badge = ' 📌 Wishlist';
-      return `${p.ADMIN} (${p.ISO_A2})${badge}`;
+      if (visitedSet.has(iso2)) badge = ' ✓ Visited';
+      else if (wishlistSet.has(iso2)) badge = ' 📌 Wishlist';
+      return `${p.ADMIN} (${iso2})${badge}`;
     },
     [visitedSet, wishlistSet]
   );
@@ -174,9 +187,7 @@ export default function GlobeView({
     );
   }
 
-  const features = countries.features.filter(
-    (f) => f.properties?.ISO_A2 && f.properties.ISO_A2 !== '-99'
-  );
+  const features = countries.features.filter((f) => resolveNaturalEarthIso2(f.properties) !== null);
 
   return (
     <div className="globe-container">

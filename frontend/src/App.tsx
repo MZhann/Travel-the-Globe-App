@@ -7,10 +7,12 @@ import ProfilePanel from './components/ProfilePanel';
 import ExploreUsers from './components/ExploreUsers';
 import UserProfileView from './components/UserProfileView';
 import GlobalChat from './components/GlobalChat';
+import ToursSection from './components/ToursSection';
 import { useAuth } from './context/AuthContext';
 import { markVisited, unmarkVisited, getVisitedCountries } from './api/visited';
 import { addToWishlist, removeFromWishlist, getWishlistCountries } from './api/wishlist';
 import type { SelectedCountry, CountryFeature } from './types/globe';
+import { resolveNaturalEarthIso2 } from './utils/naturalEarthIso2';
 
 const GEOJSON_URL =
   'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
@@ -25,6 +27,7 @@ export default function App() {
   const [drawerCountry, setDrawerCountry] = useState<SelectedCountry | null>(null);
   const [autoRotate, setAutoRotate] = useState(true);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [toursOpen, setToursOpen] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState(false);
   const { user, logout, loading, getToken } = useAuth();
@@ -65,8 +68,9 @@ export default function App() {
         const map: Record<string, string> = {};
         for (const f of data.features) {
           const p = f.properties;
-          if (p?.ISO_A2 && p.ISO_A2 !== '-99') {
-            map[p.ISO_A2] = p.ADMIN ?? p.NAME ?? p.ISO_A2;
+          const iso2 = resolveNaturalEarthIso2(p);
+          if (iso2) {
+            map[iso2] = p.ADMIN ?? p.NAME ?? iso2;
           }
         }
         setCountryNames(map);
@@ -175,6 +179,17 @@ export default function App() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             Explore
+          </button>
+          <button
+            type="button"
+            onClick={() => setToursOpen(true)}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600/20 px-3 py-1.5 text-sm text-emerald-400 transition hover:bg-emerald-600/30"
+            title="Browse tours"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Tours
           </button>
         </div>
         <div className="flex items-center gap-3">
@@ -344,6 +359,15 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Tours Section */}
+      {toursOpen && (
+        <ToursSection
+          onClose={() => setToursOpen(false)}
+          getToken={getToken}
+          userId={user?.id}
+        />
+      )}
 
       {/* Global Chat */}
       {user && <GlobalChat getToken={getToken} user={user} />}
