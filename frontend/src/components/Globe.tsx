@@ -2,9 +2,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import Globe from 'react-globe.gl';
 import type { CountryFeature, CountriesGeoJSON, SelectedCountry } from '../types/globe';
 import { resolveNaturalEarthIso2 } from '../utils/naturalEarthIso2';
-
-const GEOJSON_URL =
-  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+import { fetchCountriesGeoJson } from '../constants/geojson';
 
 interface GlobeViewProps {
   onCountrySelect: (country: SelectedCountry | null) => void;
@@ -60,15 +58,27 @@ export default function GlobeView({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(null);
   const [countries, setCountries] = useState<CountriesGeoJSON | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   const visitedSet = useMemo(() => new Set(visitedCountries), [visitedCountries]);
   const wishlistSet = useMemo(() => new Set(wishlistCountries), [wishlistCountries]);
 
   useEffect(() => {
-    fetch(GEOJSON_URL)
-      .then((res) => res.json())
-      .then((data: CountriesGeoJSON) => setCountries(data))
-      .catch((err) => console.error('Failed to load countries GeoJSON', err));
+    let cancelled = false;
+    setGeoError(null);
+    fetchCountriesGeoJson<CountriesGeoJSON>()
+      .then((data) => {
+        if (!cancelled) setCountries(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load countries GeoJSON', err);
+        if (!cancelled) {
+          setGeoError(err instanceof Error ? err.message : 'Could not load map data');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -181,8 +191,32 @@ export default function GlobeView({
 
   if (!countries) {
     return (
-      <div className="globe-container flex items-center justify-center bg-globe-bg">
-        <p className="text-globe-highlight font-medium">Loading globe…</p>
+      <div className="globe-container flex flex-col items-center justify-center gap-4 bg-globe-bg px-6 text-center">
+        {geoError ? (
+          <>
+            <p className="max-w-md text-sm text-red-300">{geoError}</p>
+            <p className="max-w-md text-xs text-slate-500">
+              The map needs country boundaries from the network. Check your connection, VPN, or firewall, then try again.
+            </p>
+            <button
+              type="button"
+              className="rounded-lg bg-globe-highlight px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-600"
+              onClick={() => {
+                setGeoError(null);
+                void fetchCountriesGeoJson<CountriesGeoJSON>()
+                  .then(setCountries)
+                  .catch((err) => {
+                    console.error('Failed to load countries GeoJSON', err);
+                    setGeoError(err instanceof Error ? err.message : 'Could not load map data');
+                  });
+              }}
+            >
+              Retry
+            </button>
+          </>
+        ) : (
+          <p className="text-globe-highlight font-medium">Loading globe…</p>
+        )}
       </div>
     );
   }

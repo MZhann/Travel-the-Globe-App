@@ -13,9 +13,7 @@ import { markVisited, unmarkVisited, getVisitedCountries } from './api/visited';
 import { addToWishlist, removeFromWishlist, getWishlistCountries } from './api/wishlist';
 import type { SelectedCountry, CountryFeature } from './types/globe';
 import { resolveNaturalEarthIso2 } from './utils/naturalEarthIso2';
-
-const GEOJSON_URL =
-  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+import { fetchCountriesGeoJson } from './constants/geojson';
 
 export default function App() {
   const [selectedCountry, setSelectedCountry] = useState<SelectedCountry | null>(null);
@@ -62,9 +60,8 @@ export default function App() {
   useEffect(() => {
     if (geoLoaded.current) return;
     geoLoaded.current = true;
-    fetch(GEOJSON_URL)
-      .then((r) => r.json())
-      .then((data: { features: CountryFeature[] }) => {
+    fetchCountriesGeoJson<{ features: CountryFeature[] }>()
+      .then((data) => {
         const map: Record<string, string> = {};
         for (const f of data.features) {
           const p = f.properties;

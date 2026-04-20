@@ -104,7 +104,7 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
   const visitedContinents = stats?.visitedContinents ?? [];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex min-h-0 flex-col bg-black/95 backdrop-blur-sm">
       {/* Header */}
       <div className="relative z-10 border-b border-white/10 bg-globe-ocean/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -179,10 +179,10 @@ export default function UserProfileView({ userId, countryNames, onClose, getToke
         </div>
       </div>
 
-      {/* Content */}
-      <div className="relative flex-1 overflow-hidden">
+      {/* Content — min-h-0 so nested h-full globe canvas gets a real height in flex layout */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         {activeTab === 'globe' && (
-          <div className="h-full">
+          <div className="h-full min-h-0">
             <GlobeView selectedCountry={null} onCountrySelect={() => {}} visitedCountries={user.visitedCountries} wishlistCountries={user.wishlistCountries} autoRotate={true} />
             <div className="absolute bottom-4 left-4 rounded-lg bg-globe-ocean/90 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-4 text-sm">
