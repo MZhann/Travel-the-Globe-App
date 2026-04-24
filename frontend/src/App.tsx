@@ -8,6 +8,8 @@ import ExploreUsers from './components/ExploreUsers';
 import UserProfileView from './components/UserProfileView';
 import GlobalChat from './components/GlobalChat';
 import ToursSection from './components/ToursSection';
+import DirectMessages from './components/DirectMessages';
+import { getUnreadCount } from './api/messages';
 import { useAuth } from './context/AuthContext';
 import { markVisited, unmarkVisited, getVisitedCountries } from './api/visited';
 import { addToWishlist, removeFromWishlist, getWishlistCountries } from './api/wishlist';
@@ -28,6 +30,9 @@ export default function App() {
   const [toursOpen, setToursOpen] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [shareToast, setShareToast] = useState(false);
+  const [dmOpen, setDmOpen] = useState(false);
+  const [dmPeer, setDmPeer] = useState<{ id: string; name?: string } | null>(null);
+  const [dmUnread, setDmUnread] = useState(0);
   const { user, logout, loading, getToken } = useAuth();
 
   // Detect shared globe link (?globe=userId) on mount
@@ -73,6 +78,41 @@ export default function App() {
         setCountryNames(map);
       })
       .catch(() => {});
+  }, []);
+
+  // Refresh unread DM count on auth change + at interval while signed in
+  useEffect(() => {
+    if (!user) {
+      setDmUnread(0);
+      return;
+    }
+    const token = getToken();
+    if (!token) return;
+    let cancelled = false;
+    const load = () => {
+      getUnreadCount(token)
+        .then((d) => {
+          if (!cancelled) setDmUnread(d.count);
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = window.setInterval(load, 20000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [user, getToken, dmOpen]);
+
+  const handleStartDirectMessage = useCallback((userId: string, displayName?: string) => {
+    setDmPeer({ id: userId, name: displayName });
+    setDmOpen(true);
+    setViewingUserId(null);
+  }, []);
+
+  const handleOpenDM = useCallback(() => {
+    setDmPeer(null);
+    setDmOpen(true);
   }, []);
 
   // Load visited & wishlist when user signs in
@@ -215,6 +255,22 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={handleOpenDM}
+                  className="relative flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white transition hover:bg-white/20"
+                  title="Direct messages"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  Messages
+                  {dmUnread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {dmUnread > 99 ? '99+' : dmUnread}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
                   onClick={handleShareGlobe}
                   className="flex items-center gap-2 rounded-lg bg-blue-600/20 px-3 py-1.5 text-sm text-blue-400 transition hover:bg-blue-600/30"
                   title="Share your globe"
@@ -316,6 +372,25 @@ export default function App() {
           countryNames={countryNames}
           onClose={handleCloseUserProfile}
           getToken={getToken}
+          onStartDirectMessage={handleStartDirectMessage}
+        />
+      )}
+
+      {/* Direct Messages */}
+      {user && dmOpen && (
+        <DirectMessages
+          getToken={getToken}
+          user={user}
+          initialPeerId={dmPeer?.id ?? null}
+          initialPeerName={dmPeer?.name ?? null}
+          onViewProfile={(id) => {
+            setDmOpen(false);
+            setViewingUserId(id);
+          }}
+          onClose={() => {
+            setDmOpen(false);
+            setDmPeer(null);
+          }}
         />
       )}
 

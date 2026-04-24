@@ -1,17 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment, type ReactNode } from 'react';
 import type { Tour, TourPlan, AIChatMessage } from '../api/tours';
 import {
   searchTours,
   getMyTourPlans,
+  discoverTourPlans,
   createTourPlan,
   getTourPlan,
   joinTourPlan,
   leaveTourPlan,
   sendPlanMessage,
   chatWithAIAdvisor,
+  getTourById,
 } from '../api/tours';
 
 type Tab = 'browse' | 'advisor' | 'plans';
+type PlansSubTab = 'mine' | 'discover';
 type TourType = '' | 'adventure' | 'cultural' | 'beach' | 'nature' | 'city' | 'cruise' | 'food' | 'historical';
 
 const TYPE_OPTIONS: { value: TourType; label: string; icon: string }[] = [
@@ -63,10 +66,13 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
   const aiInputRef = useRef<HTMLInputElement>(null);
 
   // Plans
+  const [plansSubTab, setPlansSubTab] = useState<PlansSubTab>('mine');
   const [plans, setPlans] = useState<TourPlan[]>([]);
+  const [discoverPlans, setDiscoverPlans] = useState<TourPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<TourPlan | null>(null);
   const [planMsg, setPlanMsg] = useState('');
   const [plansLoading, setPlansLoading] = useState(false);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
 
   useEffect(() => {
     loadTours();
@@ -96,17 +102,31 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
   );
 
   // Load plans
+  const refreshMyPlans = useCallback(() => {
+    const token = getToken();
+    if (!token) return;
+    setPlansLoading(true);
+    getMyTourPlans(token)
+      .then((d) => setPlans(d.plans))
+      .catch(() => setPlans([]))
+      .finally(() => setPlansLoading(false));
+  }, [getToken]);
+
+  const refreshDiscoverPlans = useCallback(() => {
+    const token = getToken();
+    if (!token) return;
+    setDiscoverLoading(true);
+    discoverTourPlans(token)
+      .then((d) => setDiscoverPlans(d.plans))
+      .catch(() => setDiscoverPlans([]))
+      .finally(() => setDiscoverLoading(false));
+  }, [getToken]);
+
   useEffect(() => {
-    if (tab === 'plans') {
-      const token = getToken();
-      if (!token) return;
-      setPlansLoading(true);
-      getMyTourPlans(token)
-        .then((d) => setPlans(d.plans))
-        .catch(() => setPlans([]))
-        .finally(() => setPlansLoading(false));
-    }
-  }, [tab, getToken]);
+    if (tab !== 'plans') return;
+    if (plansSubTab === 'mine') refreshMyPlans();
+    else refreshDiscoverPlans();
+  }, [tab, plansSubTab, refreshMyPlans, refreshDiscoverPlans]);
 
   // AI advisor: start session
   const startAISession = useCallback(async () => {
@@ -221,8 +241,15 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
       if (!token) return;
       try {
         const data = await joinTourPlan(token, planId);
+        // Ensure the plan lives in the "mine" list after joining
+        setPlans((prev) => {
+          const found = prev.find((p) => p._id === planId);
+          if (found) return prev.map((p) => (p._id === planId ? { ...p, ...data.plan } : p));
+          return [data.plan, ...prev];
+        });
+        setDiscoverPlans((prev) => prev.filter((p) => p._id !== planId));
         setSelectedPlan(data.plan);
-        setPlans((prev) => prev.map((p) => (p._id === planId ? { ...p, ...data.plan } : p)));
+        setPlansSubTab('mine');
       } catch (err) {
         console.error('Failed to join plan:', err);
       }
@@ -236,13 +263,38 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
       if (!token) return;
       try {
         const data = await leaveTourPlan(token, planId);
-        setPlans((prev) => prev.map((p) => (p._id === planId ? { ...p, ...data.plan } : p)));
+        // After leaving, user is no longer a member — remove from mine, refresh discover
+        setPlans((prev) => prev.filter((p) => p._id !== planId));
         setSelectedPlan(null);
+        if (data.plan.status === 'planning') {
+          refreshDiscoverPlans();
+        }
       } catch (err) {
         console.error('Failed to leave plan:', err);
       }
     },
-    [getToken]
+    [getToken, refreshDiscoverPlans]
+  );
+
+  // Open a tour from anywhere (used by AI advisor links)
+  const handleOpenTourById = useCallback(
+    async (tourId: string) => {
+      // Look up the cached tour first
+      const cached = tours.find((t) => t._id === tourId);
+      if (cached) {
+        setTab('browse');
+        setSelectedTour(cached);
+        return;
+      }
+      try {
+        const data = await getTourById(tourId);
+        setTab('browse');
+        setSelectedTour(data.tour);
+      } catch (err) {
+        console.error('Failed to open tour by id:', err);
+      }
+    },
+    [tours]
   );
 
   return (
@@ -394,7 +446,11 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
                           : 'bg-white/10 text-slate-200'
                       }`}
                     >
-                      <div className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</div>
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {msg.role === 'assistant'
+                          ? renderAIMessage(msg.content, handleOpenTourById)
+                          : msg.content}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -443,34 +499,113 @@ export default function ToursSection({ onClose, getToken, userId }: Props) {
         {tab === 'plans' && !selectedPlan && (
           <div className="h-full overflow-y-auto p-6">
             <div className="mx-auto max-w-4xl">
-              <h3 className="mb-6 text-lg font-semibold text-white">My Tour Plans</h3>
-              {plansLoading ? (
-                <div className="flex justify-center py-20">
-                  <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                </div>
-              ) : plans.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                  <span className="text-5xl">📋</span>
-                  <p className="mt-3 text-lg">No plans yet</p>
-                  <p className="mt-1 text-sm">Browse tours and create a plan to start collaborating!</p>
+              <div className="mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white">Tour Plans</h3>
+                <div className="flex gap-1 rounded-lg bg-white/5 p-1 text-sm">
                   <button
-                    onClick={() => setTab('browse')}
-                    className="mt-4 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    onClick={() => setPlansSubTab('mine')}
+                    className={`rounded-md px-3 py-1.5 font-medium transition ${
+                      plansSubTab === 'mine'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
                   >
-                    Browse Tours
+                    My Plans ({plans.length})
+                  </button>
+                  <button
+                    onClick={() => setPlansSubTab('discover')}
+                    className={`rounded-md px-3 py-1.5 font-medium transition ${
+                      plansSubTab === 'discover'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    Discover & Join
                   </button>
                 </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {plans.map((plan) => (
-                    <PlanCard
-                      key={plan._id}
-                      plan={plan}
-                      onClick={() => handleOpenPlan(plan)}
-                      userId={userId}
-                    />
-                  ))}
-                </div>
+              </div>
+
+              {plansSubTab === 'mine' && (
+                <>
+                  {plansLoading ? (
+                    <div className="flex justify-center py-20">
+                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                    </div>
+                  ) : plans.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                      <span className="text-5xl">📋</span>
+                      <p className="mt-3 text-lg">No plans yet</p>
+                      <p className="mt-1 text-sm">
+                        Browse tours to create your own, or discover open plans from other
+                        travelers!
+                      </p>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={() => setTab('browse')}
+                          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          Browse Tours
+                        </button>
+                        <button
+                          onClick={() => setPlansSubTab('discover')}
+                          className="rounded-lg bg-white/10 px-6 py-2 text-sm font-medium text-white hover:bg-white/20"
+                        >
+                          Discover Plans
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {plans.map((plan) => (
+                        <PlanCard
+                          key={plan._id}
+                          plan={plan}
+                          onClick={() => handleOpenPlan(plan)}
+                          userId={userId}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {plansSubTab === 'discover' && (
+                <>
+                  <p className="mb-4 text-sm text-slate-400">
+                    Browse tour plans created by other travelers. Join any plan to chat with the
+                    group and collaborate on the trip.
+                  </p>
+                  {discoverLoading ? (
+                    <div className="flex justify-center py-20">
+                      <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+                    </div>
+                  ) : discoverPlans.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-500">
+                      <span className="text-5xl">🧭</span>
+                      <p className="mt-3 text-lg">No open plans right now</p>
+                      <p className="mt-1 text-sm">
+                        Be the first — create a plan and invite others to join!
+                      </p>
+                      <button
+                        onClick={() => setTab('browse')}
+                        className="mt-4 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                      >
+                        Browse Tours
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {discoverPlans.map((plan) => (
+                        <DiscoverPlanCard
+                          key={plan._id}
+                          plan={plan}
+                          onOpen={() => handleOpenPlan(plan)}
+                          onJoin={() => handleJoinPlan(plan._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -700,6 +835,133 @@ function PlanCard({
       </div>
     </button>
   );
+}
+
+function DiscoverPlanCard({
+  plan,
+  onOpen,
+  onJoin,
+}: {
+  plan: TourPlan;
+  onOpen: () => void;
+  onJoin: () => void;
+}) {
+  const tour = plan.tour;
+  const creator = plan.creatorDetails;
+  const creatorName =
+    creator?.displayName || creator?.email?.split('@')[0] || 'Unknown traveler';
+
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onJoin();
+  };
+
+  return (
+    <div
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className="flex cursor-pointer flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 transition hover:border-emerald-500/50 hover:bg-white/10"
+    >
+      {tour?.imageUrl && (
+        <div className="relative h-32 w-full overflow-hidden">
+          <img src={tour.imageUrl} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur">
+            {tour.type}
+          </span>
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="text-sm font-semibold text-white line-clamp-2">{plan.title}</h4>
+          <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-400">
+            {plan.status}
+          </span>
+        </div>
+        {tour && (
+          <p className="mt-1 text-xs text-slate-400">
+            {tour.city}, {tour.country} — ${tour.priceUsd} · {tour.durationDays} days
+          </p>
+        )}
+        <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+          <span>by <span className="text-amber-400">{creatorName}</span></span>
+          <span>·</span>
+          <span>{plan.members?.length ?? 0} members</span>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            className="text-xs text-slate-400 hover:text-white"
+          >
+            View details →
+          </button>
+          <button
+            type="button"
+            onClick={handleJoinClick}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500"
+          >
+            Join plan
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Parse AI advisor message content and replace `[[tour:ID|Title]]` tokens
+ * with clickable buttons. Also matches legacy `Tour ID: <24-char-id>` for
+ * backward compatibility.
+ */
+function renderAIMessage(content: string, onOpenTour: (id: string) => void): ReactNode {
+  // Combined regex: matches [[tour:ID|Title]] OR "Tour ID: <24-char-hex>"
+  const combined = /\[\[tour:([a-f0-9]{24})\|([^\]]+)\]\]|Tour ID:\s*([a-f0-9]{24})/gi;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = combined.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(
+        <Fragment key={`t-${key++}`}>{content.slice(lastIndex, match.index)}</Fragment>
+      );
+    }
+    const id = match[1] ?? match[3];
+    const label = match[2] ?? 'Open tour';
+    nodes.push(
+      <button
+        key={`link-${key++}`}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onOpenTour(id);
+        }}
+        className="rounded px-1 font-medium text-blue-300 underline-offset-2 transition hover:bg-blue-500/10 hover:text-blue-200 hover:underline"
+      >
+        {label}
+      </button>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    nodes.push(<Fragment key={`t-${key++}`}>{content.slice(lastIndex)}</Fragment>);
+  }
+
+  return nodes.length > 0 ? nodes : content;
 }
 
 function PlanDetail({

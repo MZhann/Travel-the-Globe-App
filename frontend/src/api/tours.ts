@@ -105,6 +105,18 @@ export async function getMyTourPlans(token: string): Promise<{ plans: TourPlan[]
   return json as unknown as { plans: TourPlan[] };
 }
 
+export async function discoverTourPlans(
+  token: string,
+  limit = 30
+): Promise<{ plans: TourPlan[] }> {
+  const res = await fetch(`${API_BASE}/tour-plans/discover?limit=${limit}`, {
+    headers: authHeaders(token),
+  });
+  const json = await parseJson(res);
+  if (!res.ok) throw new Error((json.error as string) || 'Failed to discover plans');
+  return json as unknown as { plans: TourPlan[] };
+}
+
 export async function createTourPlan(
   token: string,
   data: { tourId: string; title?: string; plannedDate?: string; notes?: string }
