@@ -17,6 +17,7 @@ import chatRouter from './routes/chat';
 import toursRouter from './routes/tours';
 import tourPlansRouter from './routes/tourPlans';
 import aiAdvisorRouter from './routes/aiAdvisor';
+import messagesRouter from './routes/messages';
 import ChatMessage from './models/ChatMessage';
 import { JWT_SECRET, type JwtPayload } from './middleware/auth';
 
@@ -65,6 +66,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/tours', toursRouter);
 app.use('/api/tour-plans', tourPlansRouter);
 app.use('/api/ai-advisor', aiAdvisorRouter);
+app.use('/api/messages', messagesRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Travel the Globe API' });
@@ -78,6 +80,9 @@ const io = new SocketIOServer(httpServer, {
     credentials: true,
   },
 });
+
+// Expose io to express routes via app.get('io')
+app.set('io', io);
 
 io.use((socket, next) => {
   const token = socket.handshake.auth.token as string | undefined;
@@ -93,6 +98,12 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
+  // Join a private room for direct messages so routes can target this user
+  const userId = socket.data.userId as string | undefined;
+  if (userId) {
+    socket.join(`user:${userId}`);
+  }
+
   ChatMessage.find()
     .sort({ createdAt: -1 })
     .limit(50)

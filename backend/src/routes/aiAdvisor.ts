@@ -81,18 +81,18 @@ RULES:
 - Be conversational, friendly, and enthusiastic about travel
 - Ask ONE question at a time to keep the conversation natural
 - Use emojis sparingly to keep the tone fun
-- When recommending tours, include the tour ID so the app can link to it
+- When recommending a tour, link to it using the EXACT format [[tour:TOUR_ID|Tour Title]] (use the double-bracket syntax so the app can render a clickable link). Do not include the raw ID anywhere else.
 - Format tour recommendations clearly with name, price, duration, and match reasoning
 - If no tours match perfectly, suggest the closest options and explain trade-offs
 - Keep responses concise (2-4 short paragraphs max)
 - When you have enough information to make recommendations, present them in this format:
 
 RECOMMENDATIONS:
-**1. [Tour Title]** (Tour ID: [id])
+**1. [[tour:TOUR_ID|Tour Title]]**
 - Price: $X | Duration: X days | Difficulty: X
 - Why it's perfect for you: [personalized explanation]
 
-**2. [Tour Title]** (Tour ID: [id])
+**2. [[tour:TOUR_ID|Tour Title]]**
 - Price: $X | Duration: X days | Difficulty: X
 - Why it's perfect for you: [personalized explanation]
 
@@ -227,7 +227,7 @@ function scoreTour(tour: ITourDoc, prefs: UserPrefs): number {
 }
 
 function formatTourRecommendation(tour: ITourDoc, idx: number, reason: string): string {
-  return `**${idx}. ${tour.title}** (Tour ID: ${tour._id})\n` +
+  return `**${idx}. [[tour:${tour._id}|${tour.title}]]**\n` +
     `- ${tour.city}, ${tour.country} | ${tour.durationDays} days | $${tour.priceUsd} | ${tour.difficulty}\n` +
     `- Rating: ★ ${tour.rating} (${tour.reviewCount} reviews)\n` +
     `- ${reason}`;

@@ -8,6 +8,46 @@ import { requireAuth, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 /**
+ * GET /api/tour-plans/discover — List plans the user can join
+ * Returns plans where user is NOT already a member/creator and status is 'planning'.
+ */
+router.get('/discover', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!._id.toString();
+    const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
+
+    const plans = await TourPlan.find({
+      creatorId: { $ne: userId },
+      members: { $ne: userId },
+      status: 'planning',
+    })
+      .sort({ updatedAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const tourIds = [...new Set(plans.map((p) => p.tourId.toString()))];
+    const tours = await Tour.find({ _id: { $in: tourIds } }).lean();
+    const tourMap = new Map(tours.map((t) => [t._id.toString(), t]));
+
+    const userIds = [...new Set(plans.flatMap((p) => [p.creatorId, ...p.members]))];
+    const users = await User.find({ _id: { $in: userIds } }).select('_id email displayName').lean();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+    const enriched = plans.map((plan) => ({
+      ...plan,
+      tour: tourMap.get(plan.tourId.toString()) ?? null,
+      memberDetails: plan.members.map((id) => userMap.get(id) ?? { _id: id, displayName: 'Unknown' }),
+      creatorDetails: userMap.get(plan.creatorId) ?? { _id: plan.creatorId, displayName: 'Unknown' },
+    }));
+
+    res.json({ plans: enriched });
+  } catch (err) {
+    console.error('Discover tour plans error:', err);
+    res.status(500).json({ error: 'Failed to load discoverable plans' });
+  }
+});
+
+/**
  * GET /api/tour-plans — List plans where user is creator or member
  */
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
