@@ -17,6 +17,87 @@ interface ChatMsg {
   content: string;
 }
 
+type LeanTour = Pick<ITourDoc, '_id' | 'title'> & { _id: unknown };
+
+function normalizeTitleKey(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function looksLikeObjectId(id: string): boolean {
+  return /^[a-f0-9]{24}$/i.test(id);
+}
+
+async function normalizeAdvisorReply(reply: string): Promise<string> {
+  // Replace any [[tour:ID|Title]] token with a canonical version from DB.
+  // This prevents mismatches where the model outputs the correct title but a wrong/random ID (or vice versa).
+  const tokenRe = /\[\[tour:([^\]|]+)\|([^\]]+)\]\]/g;
+  const tokens = Array.from(reply.matchAll(tokenRe)).map((m, idx) => {
+    const full = m[0] ?? '';
+    const id = String(m[1] ?? '').trim();
+    const title = String(m[2] ?? '').trim();
+    const placeholder = `__TOUR_TOKEN_${idx}__`;
+    return { full, id, title, placeholder };
+  });
+  if (tokens.length === 0) return reply;
+
+  // First, replace tokens with placeholders so we can safely do async resolution.
+  let cursor = 0;
+  let tokenIdx = 0;
+  const withPlaceholders = reply.replace(tokenRe, () => tokens[tokenIdx++]?.placeholder ?? '');
+
+  const candidateIds = Array.from(new Set(tokens.map((t) => t.id).filter(looksLikeObjectId)));
+
+  // Fetch only what we need (small payload).
+  const toursById = new Map<string, { id: string; title: string }>();
+  if (candidateIds.length > 0) {
+    const found = (await Tour.find({ _id: { $in: candidateIds } }, { title: 1 }).lean()) as unknown as LeanTour[];
+    for (const t of found) {
+      const id = String(t._id);
+      toursById.set(id.toLowerCase(), { id, title: (t as unknown as { title: string }).title });
+    }
+  }
+
+  const unresolvedByTitle = tokens.some((t) => !looksLikeObjectId(t.id) || !toursById.has(t.id.toLowerCase()));
+
+  let toursByTitleKey: Map<string, { id: string; title: string }> | null = null;
+  if (unresolvedByTitle) {
+    const all = (await Tour.find({}, { title: 1 }).lean()) as unknown as LeanTour[];
+    toursByTitleKey = new Map<string, { id: string; title: string }>();
+    for (const t of all) {
+      const id = String(t._id);
+      const title = (t as unknown as { title: string }).title;
+      toursByTitleKey.set(normalizeTitleKey(title), { id, title });
+    }
+  }
+
+  let result = withPlaceholders;
+  for (const t of tokens) {
+    let replacement: string | null = null;
+
+    if (looksLikeObjectId(t.id)) {
+      const byId = toursById.get(t.id.toLowerCase());
+      if (byId) replacement = `[[tour:${byId.id}|${byId.title}]]`;
+    }
+
+    if (!replacement && toursByTitleKey) {
+      const byTitle = toursByTitleKey.get(normalizeTitleKey(t.title));
+      if (byTitle) replacement = `[[tour:${byTitle.id}|${byTitle.title}]]`;
+    }
+
+    // If we can't resolve safely, keep the original token (better than linking to a wrong tour).
+    if (!replacement) replacement = t.full;
+
+    result = result.replace(t.placeholder, replacement);
+    cursor++;
+  }
+
+  return result;
+}
+
 async function callOpenAI(messages: ChatMsg[]): Promise<string> {
   const { apiKey, baseUrl, model } = getConfig();
   console.log(`[AI Advisor] Calling OpenAI — model: ${model}, baseUrl: ${baseUrl}, keyLen: ${apiKey.length}`);
@@ -114,7 +195,8 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
       const toursContext = await getToursContext();
       const systemPrompt = SYSTEM_PROMPT.replace('{TOURS_CONTEXT}', toursContext);
       const fullMessages: ChatMsg[] = [{ role: 'system', content: systemPrompt }, ...userMessages];
-      const reply = await callOpenAI(fullMessages);
+      const rawReply = await callOpenAI(fullMessages);
+      const reply = await normalizeAdvisorReply(rawReply);
       res.json({ reply });
       return;
     } catch (err) {
@@ -123,7 +205,8 @@ router.post('/chat', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const reply = await buildSmartFallback(userMessages);
+    const rawReply = await buildSmartFallback(userMessages);
+    const reply = await normalizeAdvisorReply(rawReply);
     res.json({ reply, fallback: true });
   } catch (err) {
     console.error('AI advisor fallback error:', err);
